@@ -1,17 +1,17 @@
 
-extern crate ndarray;
-extern crate rand;
+extern crate dungeon_generator;
 
-mod generator;
-mod node;
-mod connection;
-
-use generator::Generator;
+use dungeon_generator::generator::Generator;
+use dungeon_generator::logger;
 
 fn main() {
 
-    let mut gen = Generator::init(100, 100);
+    match logger::init() {
+        Ok(_) => {},
+        Err(e) => println!("Could not init logger: {}", e)
+    }
 
-    gen.create_random_graph();
+    let mut gen = Generator::init(4, 4);
+
     println!("lelele");
 }

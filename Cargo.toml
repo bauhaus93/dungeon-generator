@@ -7,3 +7,5 @@ authors = ["jakob <jakobfischer93@gmail.com>"]
 
 ndarray = "0.9.0"
 rand = "0.3.0"
+log = "0.3.7"
+chrono = "0.3.0"
