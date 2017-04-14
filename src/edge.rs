@@ -8,13 +8,12 @@ pub struct Edge {
     active: Cell<bool>
 }
 
-
 impl Edge {
 
     pub fn create(node_a: Rc<Node>, node_b: Rc<Node>) -> Edge {
         Edge {
             node: [node_a, node_b],
-            active: Cell::new(false)
+            active: Cell::new(false),
         }
     }
 
@@ -24,5 +23,9 @@ impl Edge {
 
     pub fn toggle(&self) {
         self.active.set(!self.active.get())
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.active.get()
     }
 }

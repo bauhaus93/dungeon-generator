@@ -22,23 +22,44 @@ fn connect(node_a: Rc<Node>, node_b: Rc<Node>) -> Rc<Edge> {
     e
 }
 
+fn create_four_neighbour_graph(size_x: usize, size_y: usize) -> (Vec<Rc<Node>>, Vec<Rc<Edge>>) {
+    let mut nodes: Vec<Rc<Node>> = Vec::new();
+    let mut edges: Vec<Rc<Edge>> = Vec::new();
+
+    for y in 0..size_y {
+        for x in 0..size_x {
+            let node_a = Rc::new(Node::create(x as i32, y as i32));
+
+            if x > 0 {
+                let node_b = nodes[y * size_x + x - 1].clone();
+                let e = connect(node_a.clone(), node_b);
+                edges.push(e);
+            }
+
+            if y > 0 {
+                let node_b = nodes[(y - 1) * size_x + x].clone();
+                let e = connect(node_a.clone(), node_b);
+                edges.push(e);
+            }
+            nodes.push(node_a);
+        }
+    }
+    info!("created four neighbour graph with {} nodes and {} edges", nodes.len(), edges.len());
+    (nodes, edges)
+}
+
 impl Generator {
 
     pub fn init(size_x: usize, size_y: usize) -> Generator {
+        info!("creating new dungeon generator");
 
-        let nodes = Vec::new();
-        let edges = Vec::new();
+        let (nodes, edges) = create_four_neighbour_graph(size_x, size_y);
 
-        let mut gen = Generator {
+        let gen = Generator {
             size: (size_x, size_y),
             nodes: nodes,
             edges: edges,
         };
-
-        gen.create_graph();
-
-        info!("initialized new generator instance with {} nodes and {} edges", gen.get_node_count(), gen.get_edge_count());
-
         gen
     }
 
@@ -50,10 +71,24 @@ impl Generator {
         self.edges.len() as u32
     }
 
+    pub fn get_nodes(&self) -> &Vec<Rc<Node>> {
+        &self.nodes
+    }
+
+    pub fn get_edges(&self) -> &Vec<Rc<Edge>> {
+        &self.edges
+    }
+
+    pub fn get_size(&self) -> (usize, usize) {
+        self.size
+    }
+
     fn create_graph(&mut self) {
 
-        for _ in 0..self.size.0 * self.size.1 {
-            self.nodes.push(Rc::new(Node::default()));
+        for y in 0..self.size.1 {
+            for x in 0..self.size.0 {
+                self.nodes.push(Rc::new(Node::create(x as i32, y as i32)));
+            }
         }
 
         for y in 0..self.size.1 {
@@ -62,18 +97,13 @@ impl Generator {
 
                 if x > 0 {
                     let node_b = self.nodes[y * self.size.0 + x - 1].clone();
-
                     let e = connect(node_a.clone(), node_b);
-
-
                     self.edges.push(e);
                 }
 
                 if y > 0 {
                     let node_b = self.nodes[(y - 1) * self.size.0 + x].clone();
-
                     let e = connect(node_a.clone(), node_b);
-
                     self.edges.push(e);
                 }
             }
