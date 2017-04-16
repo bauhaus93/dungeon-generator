@@ -8,3 +8,5 @@ pub mod generator;
 pub mod node;
 pub mod edge;
 pub mod logger;
+pub mod graph;
+pub mod node_info;

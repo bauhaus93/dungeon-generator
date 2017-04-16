@@ -1,11 +1,13 @@
 use std::rc::Rc;
 
 use rand;
+use rand::Rng;
 use rand::distributions::{ IndependentSample, Range };
 
 use node::Node;
 use edge::Edge;
 
+/*
 pub struct Generator {
     size: (usize, usize),
     nodes: Vec<Rc<Node>>,
@@ -46,6 +48,23 @@ fn create_four_neighbour_graph(size_x: usize, size_y: usize) -> (Vec<Rc<Node>>, 
     }
     info!("created four neighbour graph with {} nodes and {} edges", nodes.len(), edges.len());
     (nodes, edges)
+}
+
+fn create_spanning_tree(nodes: &Vec<Rc<Node>>, edges: &Vec<Rc<Edge>>) -> (Vec<Rc<Node>>, Vec<Rc<Edge>>) {
+    let forest: Vec<(Vec<Rc<Node>>, Vec<Rc<Edge>>)> = Vec::new();
+
+    let mut edge_pool = Vec::new();
+    for e in edges {
+        edge_pool.push(e.clone());
+    }
+
+    rand::thread_rng().shuffle(&mut edge_pool);
+
+    while let Some(e) = edge_pool.pop() {
+
+    }
+
+
 }
 
 impl Generator {
@@ -110,3 +129,4 @@ impl Generator {
         }
     }
 }
+*/

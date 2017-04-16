@@ -1,17 +1,60 @@
 use std::char;
+use std::rc::Rc;
 
-use dungeon_generator::generator::Generator;
+use dungeon_generator::graph::Graph;
+use dungeon_generator::node::Node;
+use dungeon_generator::edge::Edge;
+use dungeon_generator::node_info::NodeInfo;
 
-pub fn print_dungeon(gen: &Generator) {
-    let (size_x, size_y) = gen.get_size();
-    println!("start dungeon draw");
+fn get_edge_mask(node: Rc<Node<NodeInfo>>, edges: &[Rc<Edge<NodeInfo>>]) -> u8 {
+    let mut mask = 0;
+    for e in edges {
+        let (node_a, node_b) = e.get_nodes();
+        let src_pos;
+        let dest_node = {
+            if node == node_a {
+                src_pos = node_a.get_data().get_pos();
+                node_b
+            }
+            else if node == node_b {
+                src_pos = node_b.get_data().get_pos();
+                node_a
+            }
+            else {
+                continue
+            }
+        };
+        let dest_pos = dest_node.get_data().get_pos();
 
-    let nodes = gen.get_nodes();
-    let mut scene = vec![ vec![' '; size_x]; size_y];
+        if dest_pos.0 > src_pos.0 {
+            mask |= 1;
+        }
+        else if dest_pos.1 > src_pos.1 {
+            mask |= 2;
+        }
+        else if dest_pos.0 < src_pos.0 {
+            mask |= 4;
+        }
+        else if dest_pos.1 < src_pos.1 {
+            mask |= 8;
+        }
+
+        if mask == 0xF {
+            break
+        }
+    }
+    mask
+}
+
+pub fn print_dungeon(graph: &Graph<NodeInfo>, size_x: u32, size_y: u32) {
+
+    let nodes = graph.get_nodes();
+    let edges = graph.get_edges();
+    let mut scene = vec![ vec![' '; size_x as usize]; size_y as usize];
 
     for n in nodes {
-        let mask = n.get_edge_mask();
-        let (x, y) = n.get_pos();
+        let mask = get_edge_mask(n.clone(), &edges);
+        let (x, y) = n.get_data().get_pos();
         if mask == (1 | 4) {
             scene[y as usize][x as usize] = char::from_u32(0x2501).unwrap();
         }
@@ -46,12 +89,19 @@ pub fn print_dungeon(gen: &Generator) {
             scene[y as usize][x as usize] = char::from_u32(0x254B).unwrap();
         }
     }
-
-    for y in 0..size_y {
-        for x in 0..size_x {
-            print!("{}", scene[y][x]);
-        }
-        print!("\n");
+    for _ in 0..size_x + 2 {
+        print!("#");
     }
-    println!("dungeon size: {}x{}", size_x, size_y);
+    print!("\n");
+    for y in 0..size_y {
+        print!("#");
+        for x in 0..size_x {
+            print!("{}", scene[y as usize][x as usize]);
+        }
+        print!("#\n");
+    }
+    for _ in 0..size_x + 2 {
+        print!("#");
+    }
+    println!("\ndungeon size: {}x{}", size_x, size_y);
 }
