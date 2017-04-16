@@ -1,46 +1,48 @@
 use std::char;
 use std::rc::Rc;
 
-use dungeon_generator::graph::Graph;
-use dungeon_generator::node::Node;
-use dungeon_generator::edge::Edge;
-use dungeon_generator::node_info::NodeInfo;
+use graph::Graph;
+use node::Node;
+use edge::Edge;
+use node_info::NodeInfo;
 
 fn get_edge_mask(node: Rc<Node<NodeInfo>>, edges: &[Rc<Edge<NodeInfo>>]) -> u8 {
     let mut mask = 0;
     for e in edges {
-        let (node_a, node_b) = e.get_nodes();
-        let src_pos;
-        let dest_node = {
-            if node == node_a {
-                src_pos = node_a.get_data().get_pos();
-                node_b
-            }
-            else if node == node_b {
-                src_pos = node_b.get_data().get_pos();
-                node_a
-            }
-            else {
-                continue
-            }
-        };
-        let dest_pos = dest_node.get_data().get_pos();
+        if e.is_active() {
+            let (node_a, node_b) = e.get_nodes();
+            let src_pos;
+            let dest_node = {
+                if node == node_a {
+                    src_pos = node_a.get_data().get_pos();
+                    node_b
+                }
+                else if node == node_b {
+                    src_pos = node_b.get_data().get_pos();
+                    node_a
+                }
+                else {
+                    continue
+                }
+            };
+            let dest_pos = dest_node.get_data().get_pos();
 
-        if dest_pos.0 > src_pos.0 {
-            mask |= 1;
-        }
-        else if dest_pos.1 > src_pos.1 {
-            mask |= 2;
-        }
-        else if dest_pos.0 < src_pos.0 {
-            mask |= 4;
-        }
-        else if dest_pos.1 < src_pos.1 {
-            mask |= 8;
-        }
+            if dest_pos.0 > src_pos.0 {
+                mask |= 1;
+            }
+            else if dest_pos.1 > src_pos.1 {
+                mask |= 2;
+            }
+            else if dest_pos.0 < src_pos.0 {
+                mask |= 4;
+            }
+            else if dest_pos.1 < src_pos.1 {
+                mask |= 8;
+            }
 
-        if mask == 0xF {
-            break
+            if mask == 0xF {
+                break
+            }
         }
     }
     mask

@@ -1,9 +1,9 @@
 use std::rc::Rc;
 use std::collections::VecDeque;
-use std::iter::FromIterator;
 
 use rand;
 use rand::Rng;
+use rand::distributions::{ Range, IndependentSample };
 
 use node::Node;
 use edge::Edge;
@@ -13,76 +13,43 @@ pub struct Graph<T> {
     edges: Vec<Rc<Edge<T>>>
 }
 
+fn random(max: u32) -> u32 {
+    rand::thread_rng().gen::<u32>() % max
+}
+
 impl<T: Default> Graph<T> {
 
-    pub fn create_grid(size_x: u32, size_y: u32) -> Graph<T> {
-        let mut nodes: Vec<Rc<Node<T>>> = Vec::new();
+    pub fn create_grid(size_x: u32, size_y: u32, f: &Fn(i32, i32) -> T) -> Result<Graph<T>, ()> {
+        info!("creating {}x{} grid", size_x, size_y);
+        let mut nodes: Vec<(Rc<Node<T>>)> = Vec::new();
         let mut edges: Vec<Rc<Edge<T>>> = Vec::new();
 
         for y in 0..size_y {
             for x in 0..size_x {
-                let node_a = Rc::new(Node::default());
-
+                let node_a = Rc::new(Node::create(f(x as i32, y as i32)));
                 if x > 0 {
-                    let node_b = nodes[(y * size_x + x - 1) as usize].clone();
-                    let e = Rc::new(Edge::create(node_a.clone(), node_b));
-                    edges.push(e);
+                    let node_b = &nodes[(y * size_x + x - 1) as usize];
+                    let edge = Rc::new(Edge::create(node_a.clone(), node_b.clone()));
+                    node_a.add_edge(edge.clone());
+                    node_b.add_edge(edge.clone());
+                    edges.push(edge);
                 }
 
                 if y > 0 {
-                    let node_b = nodes[((y - 1) * size_x + x) as usize].clone();
-                    let e = Rc::new(Edge::create(node_a.clone(), node_b));
-                    edges.push(e);
+                    let node_b = & nodes[((y - 1) * size_x + x) as usize];
+                    let edge = Rc::new(Edge::create(node_a.clone(), node_b.clone()));
+                    node_a.add_edge(edge.clone());
+                    node_b.add_edge(edge.clone());
+                    edges.push(edge);
                 }
                 nodes.push(node_a);
             }
         }
-
-        Graph {
+        info!("grid generated");
+        Ok(Graph {
             nodes: nodes,
             edges: edges
-        }
-    }
-
-    pub fn create_grid_with_nodes(nodes: Vec<Rc<Node<T>>>, size_x: u32, size_y: u32) -> Graph<T> {
-        let mut edges: Vec<Rc<Edge<T>>> = Vec::new();
-
-        for y in 0..size_y {
-            for x in 0..size_x {
-                let node_a = nodes[(y * size_x + x) as usize].clone();
-
-                if x > 0 {
-                    let node_b = nodes[(y * size_x + x - 1) as usize].clone();
-                    let e = Rc::new(Edge::create(node_a.clone(), node_b));
-                    edges.push(e);
-                }
-
-                if y > 0 {
-                    let node_b = nodes[((y - 1) * size_x + x) as usize].clone();
-                    let e = Rc::new(Edge::create(node_a, node_b));
-                    edges.push(e);
-                }
-            }
-        }
-
-        Graph {
-            nodes: nodes,
-            edges: edges
-        }
-    }
-
-    pub fn create_empty() -> Graph<T> {
-        Graph {
-            nodes: Vec::new(),
-            edges: Vec::new()
-        }
-    }
-
-    pub fn create(nodes: &[Rc<Node<T>>], edges: &[Rc<Edge<T>>]) -> Graph<T> {
-        Graph {
-            nodes: nodes.to_vec(),
-            edges: edges.to_vec()
-        }
+        })
     }
 
     pub fn add_node(&mut self, node: Rc<Node<T>>) {
@@ -101,64 +68,45 @@ impl<T: Default> Graph<T> {
         &self.edges
     }
 
-    pub fn create_random_tree(&self) -> Graph<T> {
-        let mut nodes = Vec::new();
-        let mut tree_edges = Vec::new();
+    pub fn make_random_tree(&self, expansion_threshold: f32) {
+        info!("creating random tree on graph");
+        let node_range = Range::new(0, self.nodes.len());
 
-        let mut shuffled_edges = Vec::new();
-        for e in &self.edges {
-            shuffled_edges.push(e.clone());
-        }
-        rand::thread_rng().shuffle(&mut shuffled_edges);
+        let mut tree_nodes = Vec::new();
+        let mut expansion_nodes = VecDeque::new();
 
-        let mut edges = VecDeque::new();
-        for e in shuffled_edges {
-            edges.push_front(e.clone());
-        }
+        expansion_nodes.push_front(self.nodes[node_range.ind_sample(&mut rand::thread_rng())].clone());
 
-        while let Some(edge) = edges.pop_front() {
-            let (node_a, node_b) = edge.get_nodes();
-            let contains_a = nodes.contains(&node_a);
-            let contains_b = nodes.contains(&node_b);
-            let contains_both = contains_a && contains_b;
-
-            if (!contains_both) && (contains_a || contains_b) {
-                    if contains_a {
-                        nodes.push(node_b);
+        while let Some(node) = expansion_nodes.pop_front() {
+            if !tree_nodes.contains(&node) {
+                tree_nodes.push(node.clone());
+            }
+            match node.connect_random(tree_nodes.as_slice()) {
+                Some(new_node) => {
+                    tree_nodes.push(new_node.clone());
+                    if (tree_nodes.len() as f32) / (self.nodes.len() as f32) < expansion_threshold {
+                        if random(100) < 75 {
+                            expansion_nodes.push_front(new_node.clone());
+                            expansion_nodes.push_back(node);
+                        }
+                        else {
+                            expansion_nodes.push_front(new_node.clone());
+                            expansion_nodes.push_front(node);
+                        }
                     }
-                    else if contains_b {
-                        nodes.push(node_a);
-                    }
-                    tree_edges.push(edge);
-            }
-            else if nodes.len() == 0 {
-                nodes.push(node_a);
-                nodes.push(node_b);
-                tree_edges.push(edge);
-            }
-            else if !contains_both {
-                edges.push_back(edge);
+
+
+
+                },
+                None => {}
             }
         }
 
-
-        nodes.retain( | ref node | {
-            let mut count = 0;
-            let node = node.clone();
-
-            for e in &tree_edges {
-                let nodes = e.get_nodes();
-                if node.eq(&nodes.0) || node.eq(&nodes.1) {
-                    count += 1;
-                }
-                if count > 1 {
-                    return true;
-                }
+        while let Some(node) = tree_nodes.pop() {
+            if node.active_edges() == 1 && node.neighbour_edge_sum() != 2 {
+                node.disconnect();
             }
-            false
-        } );
-
-
-        Graph::create(nodes.as_slice(), tree_edges.as_slice())
+        }
+        info!("random tree generated");
     }
 }
