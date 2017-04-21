@@ -15,13 +15,24 @@ fn main() {
 
     const SIZE_X: u32 = 80;
     const SIZE_Y: u32 = 40;
+    const MAIN_LEN: u32 = 50;
+    const HISTORY_SIZE: u32 = 20;
+    const HISTORY_MIN_TTL: u32 = 10;
+    const SUB_CHANCE: u32 = 10;
+    const SUB_MIN: u32 = 5;
+    const SUB_MAX: u32 = 10;
+
 
     let graph: Graph<NodeInfo> = match Graph::create_grid(SIZE_X, SIZE_Y, &NodeInfo::new) {
         Ok(g) => g,
         Err(_) => return
     };
 
-    graph.make_dungeon(50, 20, 10, 10, (5, 10));
+    graph.make_dungeon( MAIN_LEN,
+                        HISTORY_SIZE,
+                        HISTORY_MIN_TTL,
+                        SUB_CHANCE,
+                        (SUB_MIN, SUB_MAX));
 
     print_dungeon(&graph, SIZE_X, SIZE_Y);
 

@@ -68,7 +68,9 @@ impl<T: Default> Graph<T> {
     }
 
     pub fn make_dungeon(&self, main_len: u32, history_size: u32, history_min_ttl: u32, sub_chance: u32, sub_range: (u32, u32)) {
-        info!("creating random dungeon tree on graph: main_len = {}, sub_chance = {}, sub_range = [{}, {}]", main_len, sub_chance, sub_range.0, sub_range.1);
+        info!("creating random dungeon tree on graph: main_len = {}, history_size = {}, history_min_ttl: {}, sub_chance = {}, sub_range = [{}, {}]",
+               main_len, history_size, history_min_ttl, sub_chance, sub_range.0, sub_range.1);
+
         assert!(sub_chance <= 100);
         assert!(sub_range.1 >= sub_range.0);
 
@@ -80,7 +82,7 @@ impl<T: Default> Graph<T> {
         expansion_front.push((self.nodes[node_range.ind_sample(&mut rand::thread_rng())].clone(), main_len));
 
         while let Some((node, ttl)) = expansion_front.pop() {
-            println!("node: {}, ttl: {}", node.get_id(), ttl);
+            trace!("expansion node = {}, ttl = {}", node.get_id(), ttl);
             if ttl == 0 {
                 continue;
             }
@@ -103,7 +105,7 @@ impl<T: Default> Graph<T> {
                 },
                 None => {
                     if ttl >= history_min_ttl {
-                        println!("expand from history");
+                        trace!("expanding from history");
                         if let Some(old_node) = expansion_history.pop() {
                             expansion_front.push((old_node, ttl));
                         }
