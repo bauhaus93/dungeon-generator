@@ -13,7 +13,7 @@ fn main() {
         Err(e) => println!("Could not init logger: {}", e)
     }
 
-    const SIZE_X: u32 = 100;
+    const SIZE_X: u32 = 80;
     const SIZE_Y: u32 = 40;
 
     let graph: Graph<NodeInfo> = match Graph::create_grid(SIZE_X, SIZE_Y, &NodeInfo::new) {
@@ -21,7 +21,7 @@ fn main() {
         Err(_) => return
     };
 
-    graph.make_random_tree(0.33);
+    graph.make_dungeon(50, 20, 10, 10, (5, 10));
 
     print_dungeon(&graph, SIZE_X, SIZE_Y);
 

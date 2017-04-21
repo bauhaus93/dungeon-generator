@@ -1,5 +1,4 @@
 use std::rc::Rc;
-use std::collections::VecDeque;
 
 use rand;
 use rand::Rng;
@@ -68,45 +67,51 @@ impl<T: Default> Graph<T> {
         &self.edges
     }
 
-    pub fn make_random_tree(&self, expansion_threshold: f32) {
-        info!("creating random tree on graph");
+    pub fn make_dungeon(&self, main_len: u32, history_size: u32, history_min_ttl: u32, sub_chance: u32, sub_range: (u32, u32)) {
+        info!("creating random dungeon tree on graph: main_len = {}, sub_chance = {}, sub_range = [{}, {}]", main_len, sub_chance, sub_range.0, sub_range.1);
+        assert!(sub_chance <= 100);
+        assert!(sub_range.1 >= sub_range.0);
+
         let node_range = Range::new(0, self.nodes.len());
 
         let mut tree_nodes = Vec::new();
-        let mut expansion_nodes = VecDeque::new();
+        let mut expansion_front = Vec::new();
+        let mut expansion_history = Vec::new();
+        expansion_front.push((self.nodes[node_range.ind_sample(&mut rand::thread_rng())].clone(), main_len));
 
-        expansion_nodes.push_front(self.nodes[node_range.ind_sample(&mut rand::thread_rng())].clone());
-
-        while let Some(node) = expansion_nodes.pop_front() {
+        while let Some((node, ttl)) = expansion_front.pop() {
+            println!("node: {}, ttl: {}", node.get_id(), ttl);
+            if ttl == 0 {
+                continue;
+            }
             if !tree_nodes.contains(&node) {
                 tree_nodes.push(node.clone());
             }
+
             match node.connect_random(tree_nodes.as_slice()) {
                 Some(new_node) => {
                     tree_nodes.push(new_node.clone());
-                    if (tree_nodes.len() as f32) / (self.nodes.len() as f32) < expansion_threshold {
-                        if random(100) < 75 {
-                            expansion_nodes.push_front(new_node.clone());
-                            expansion_nodes.push_back(node);
-                        }
-                        else {
-                            expansion_nodes.push_front(new_node.clone());
-                            expansion_nodes.push_front(node);
+
+                    expansion_front.push((new_node.clone(), ttl - 1));
+                    expansion_history.push(new_node.clone());
+                    if random(100) < sub_chance {
+                        let sub_len = sub_range.0 + random(sub_range.1 - sub_range.0 + 1);
+                        expansion_front.push((node.clone(), sub_len));
+                        expansion_history.push(node.clone());
+                    }
+                    expansion_history.truncate(history_size as usize);
+                },
+                None => {
+                    if ttl >= history_min_ttl {
+                        println!("expand from history");
+                        if let Some(old_node) = expansion_history.pop() {
+                            expansion_front.push((old_node, ttl));
                         }
                     }
-
-
-
-                },
-                None => {}
+                }
             }
         }
 
-        while let Some(node) = tree_nodes.pop() {
-            if node.active_edges() == 1 && node.neighbour_edge_sum() != 2 {
-                node.disconnect();
-            }
-        }
-        info!("random tree generated");
+        info!("random dungeon tree generated");
     }
 }
